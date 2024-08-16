@@ -1,4 +1,4 @@
-name: Intel Device Plugins K8s Operator Unit and Integration Tests
+name: Data Science Stack (DSS) Regression Testing
 on:
   workflow_dispatch:
   push:
