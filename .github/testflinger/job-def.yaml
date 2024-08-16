@@ -1,0 +1,23 @@
+job_queue: REPLACE_QUEUE
+output_timeout: 1800
+provision_data:
+  REPLACE_PROVISION_DATA
+test_data:
+  test_cmds: |
+
+    # Exit immediately if a test fails
+    set -e
+
+    # Clone repo from appropriate branch/commit.
+    ssh ubuntu@$DEVICE_IP '
+      DEBIAN_FRONTEND=noninteractive sudo apt -y install git
+      git clone -b REPLACE_BRANCH \
+        https://github.com/canonical/checkbox-dss-validation.git \
+        ~ubuntu/checkbox-dss-validation
+      cd ~ubuntu/checkbox-dss-validation
+      echo "Current git branch: $(git branch --show-current)"
+      echo "Latest commit:"
+      git log --name-status HEAD^..HEAD
+    '
+
+    # TODO: install deps and run tests

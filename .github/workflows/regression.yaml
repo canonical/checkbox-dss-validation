@@ -1,0 +1,34 @@
+name: Intel Device Plugins K8s Operator Unit and Integration Tests
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - frenchwr/testflinger-integration # temporary for testing
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  regression-test:
+    name: Regression testing on Testflinger instance with Intel GPU(s)
+    runs-on: [testflinger]
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+      - name: Build job file from template
+        env:
+          BRANCH: ${{ github.head_ref || github.ref_name }}
+          QUEUE: dell-precision-3470-c30322 #ADL iGPU + NVIDIA GPU
+          PROVISION_DATA: "distro: jammy"
+        run: |
+          sed -e "s|REPLACE_BRANCH|${BRANCH}|" \
+          -e "s|REPLACE_QUEUE|${QUEUE}|" \
+          -e "s|REPLACE_PROVISION_DATA|${PROVISION_DATA}|" \
+          ${GITHUB_WORKSPACE}/.github/testflinger/job-def.yaml > \
+          ${GITHUB_WORKSPACE}/maas2.yaml
+      - name: Submit testflinger job
+        uses: canonical/testflinger/.github/actions/submit@main
+        with:
+          poll: true
+          job-path: ${GITHUB_WORKSPACE}/maas2.yaml
