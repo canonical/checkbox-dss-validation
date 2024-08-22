@@ -2,7 +2,7 @@
 set -e
 
 echo -e "\nStep 1/5: Deploying MicroK8s snap"
-sudo snap install microk8s --classic --channel=1.29/stable
+sudo snap install microk8s --channel 1.28/stable --classic
 
 USER=$(id -nu ${SNAP_UID})
 HOME=${SNAP_REAL_HOME}
@@ -14,8 +14,8 @@ sudo chown -f -R $USER $HOME/.kube
 sudo chown -f -R $USER $HOME/.local/share
 
 echo -e "\nStep 2/5: Configuring MicroK8s addons"
-sudo microk8s enable dns
 sudo microk8s enable hostpath-storage
+sudo microk8s enable dns
 sudo microk8s enable rbac
 
 echo "Waiting for microK8s addons to become ready..."

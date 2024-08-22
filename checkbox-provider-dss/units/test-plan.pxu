@@ -1,4 +1,4 @@
-id: validate-intel-gpu
+id: dss-validation
 unit: test plan
 _name: DSS validation of Intel-supported Docker images and k8s Intel GPU support
 include:
