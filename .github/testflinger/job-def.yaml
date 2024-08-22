@@ -20,4 +20,22 @@ test_data:
       git log --name-status HEAD^..HEAD
     '
 
-    # TODO: install deps and run tests
+    # Install snap
+    ssh ubuntu@$DEVICE_IP '
+      sudo snap install --classic snapcraft
+      sudo snap install checkbox22
+      lxd init --auto
+      cd checkbox-dss-validation
+      snapcraft
+      sudo snap install --dangerous --classic ./checkbox-dss_*_amd64.snap
+    '
+
+    # Install test dependencies
+    ssh ubuntu@$DEVICE_IP '
+      checkbox-dss.install-deps
+    '
+
+    # Run tests
+    ssh ubuntu@$DEVICE_IP '
+      checkbox-dss.validate-intel-gpu
+    '
