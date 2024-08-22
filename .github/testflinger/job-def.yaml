@@ -24,6 +24,7 @@ test_data:
     ssh ubuntu@$DEVICE_IP '
       sudo snap install --classic snapcraft
       sudo snap install checkbox22
+      sudo snap install lxd --channel=5.21/stable
       lxd init --auto
       cd checkbox-dss-validation
       snapcraft
