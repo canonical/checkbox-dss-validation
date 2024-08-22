@@ -1,14 +1,23 @@
-# TODO: add host-level Intel GPU checks (lspci, ls /dev/dri)
+id: intel_gpu/check_host_gpu_avail
+category_id: dss-regress
+flags: simple
+requires: executable.name == 'intel_gpu_top'
+_summary: Verify that an Intel GPU is available on the host
+estimated_duration: 5s
+command:
+  result=$(intel_gpu_top -L)
+  if [[ ${result} == *"pci:vendor=8086"* ]]; then
+      echo "Test success: Intel GPU available on host: ${result}"
+  else
+      >&2 echo "Test failure: "intel_gpu_top -L" reports no Intel GPUs: ${result}"
+      exit 1
+  fi
 
-unit: template
-template-resource: graphics_card
-template-filter: graphics_card.driver in ['i915']
-template-engine: jinja2
-template-unit: job
-id: intel_gpu_plugin/microk8s_install_intel_gpu_plugin_{{ driver }}
+id: intel_gpu_plugin/install_intel_gpu_plugin
 category_id: dss-regress
 flags: simple
 requires: executable.name == 'kubectl'
+depends: intel_gpu/check_host_gpu_avail
 _summary: Install Intel K8s GPU Device Plugin
 estimated_duration: 2m
 command:
@@ -25,15 +34,11 @@ command:
   sleep ${SLEEP_SECS}
   echo "Test success: Intel K8s GPU Device Plugin deployed."
 
-unit: template
-template-resource: graphics_card
-template-filter: graphics_card.driver in ['i915']
-template-engine: jinja2
-template-unit: job
-id: intel_gpu_plugin/daemonset_check_name_{{ driver }}
+id: intel_gpu_plugin/daemonset_check_name
 category_id: dss-regress
 flags: simple
 requires: executable.name == 'microk8s'
+depends: intel_gpu/check_host_gpu_avail
 _summary: Check DaemonSet Name
 estimated_duration: 1s
 command:
@@ -46,15 +51,11 @@ command:
       exit 1
   fi
 
-unit: template
-template-resource: graphics_card
-template-filter: graphics_card.driver in ['i915']
-template-engine: jinja2
-template-unit: job
-id: intel_gpu_plugin/daemonset_check_number_available_{{ driver }}
+id: intel_gpu_plugin/daemonset_check_number_available
 category_id: dss-regress
 flags: simple
 requires: executable.name == 'microk8s'
+depends: intel_gpu/check_host_gpu_avail
 _summary: Check number of available daemonsets
 estimated_duration: 1s
 command:
@@ -80,15 +81,11 @@ command:
       exit 1
   fi
 
-unit: template
-template-resource: graphics_card
-template-filter: graphics_card.driver in ['i915']
-template-engine: jinja2
-template-unit: job
-id: intel_gpu_plugin/daemonset_check_number_ready_{{ driver }}
+id: intel_gpu_plugin/daemonset_check_number_ready
 category_id: dss-regress
 flags: simple
 requires: executable.name == 'microk8s'
+depends: intel_gpu/check_host_gpu_avail
 _summary: Check number of ready daemonsets
 estimated_duration: 1s
 command:
@@ -116,15 +113,11 @@ command:
 
 # TODO: add node label checks
 
-unit: template
-template-resource: graphics_card
-template-filter: graphics_card.driver in ['i915']
-template-engine: jinja2
-template-unit: job
-id: intel_gpu_plugin/dss_initialize_{{ driver }}
+id: intel_gpu_plugin/dss_initialize
 category_id: dss-regress
 flags: simple
 requires: executable.name == 'microk8s'
+depends: intel_gpu/check_host_gpu_avail
 _summary: Initialize DSS environment with common k8s manifests
 estimated_duration: 2m
 command:
@@ -136,15 +129,11 @@ command:
   sudo microk8s.kubectl wait --for condition=available --timeout 1200s -n dss deployment -l app=dss-mlflow
   echo "Test success: common DSS manifests deployed."
 
-unit: template
-template-resource: graphics_card
-template-filter: graphics_card.driver in ['i915']
-template-engine: jinja2
-template-unit: job
-id: intel_gpu_plugin/dss_check_service_name_{{ driver }}
+id: intel_gpu_plugin/dss_check_service_name
 category_id: dss-regress
 flags: simple
 requires: executable.name == 'microk8s'
+depends: intel_gpu/check_host_gpu_avail
 _summary: Check Service Name
 estimated_duration: 1s
 command:
@@ -159,17 +148,13 @@ command:
 
 # TODO: check other service and deployment details
 
-unit: template
-template-resource: graphics_card
-template-filter: graphics_card.driver in ['i915']
-template-engine: jinja2
-template-unit: job
-id: intel_gpu_plugin/openvino_start_{{ driver }}
+id: openvino/build_image_and_deploy
 category_id: dss-regress
 flags: simple
 requires:
   executable.name == 'docker'
   executable.name == 'microk8s'
+depends: intel_gpu/check_host_gpu_avail
 _summary: Launch OpenVINO+Jupyter container
 estimated_duration: 6m
 command:
@@ -194,15 +179,11 @@ command:
   sudo microk8s.kubectl wait --for condition=available --timeout 1200s -n dss deployment -l app=user-notebook-openvino
   echo "Test success: OpenVINO+Jupyter container is running."
 
-unit: template
-template-resource: graphics_card
-template-filter: graphics_card.driver in ['i915']
-template-engine: jinja2
-template-unit: job
-id: intel_gpu_plugin/openvino_deployment_{{ driver }}
+id: openvino/app_deployment
 category_id: dss-regress
 flags: simple
 requires: executable.name == 'microk8s'
+depends: intel_gpu/check_host_gpu_avail
 _summary: Check OpenVINO Deployment
 estimated_duration: 1s
 command:
@@ -215,15 +196,11 @@ command:
       exit 1
   fi
 
-unit: template
-template-resource: graphics_card
-template-filter: graphics_card.driver in ['i915']
-template-engine: jinja2
-template-unit: job
-id: intel_gpu_plugin/openvino_libs_installed_{{ driver }}
+id: openvino/libs_installed
 category_id: dss-regress
 flags: simple
 requires: executable.name == 'microk8s'
+depends: intel_gpu/check_host_gpu_avail
 _summary: Check jupyter and openvino python packages in OpenVINO container
 estimated_duration: 1s
 command:
@@ -234,15 +211,11 @@ command:
   microk8s.kubectl -n dss exec ${pod} -- pip show openvino
   echo "Test success: jupyter and openvino python packages installed in container."
 
-unit: template
-template-resource: graphics_card
-template-filter: graphics_card.driver in ['i915']
-template-engine: jinja2
-template-unit: job
-id: intel_gpu_plugin/openvino_gpu_avail_{{ driver }}
+id: openvino/gpu_avail
 category_id: dss-regress
 flags: simple
 requires: executable.name == 'microk8s'
+depends: intel_gpu/check_host_gpu_avail
 _summary: Check OpenVINO GPU Availability
 estimated_duration: 1s
 command:
@@ -267,6 +240,7 @@ id: itex/check_itex_import
 category_id: dss-regress
 flags: simple
 requires: executable.name == 'microk8s'
+depends: intel_gpu/check_host_gpu_avail
 _summary: Check to see if itex can be imported
 estimated_duration: 5m
 command:
@@ -319,6 +293,7 @@ id: ipex/check_ipex_import
 category_id: dss-regress
 flags: simple
 requires: executable.name == 'microk8s'
+depends: intel_gpu/check_host_gpu_avail
 _summary: Check to see if ipex can be imported
 estimated_duration: 5m
 command:
@@ -372,6 +347,7 @@ id: ipex/ipex_gpu_avail
 category_id: dss-regress
 flags: simple
 requires: executable.name == 'microk8s'
+depends: intel_gpu/check_host_gpu_avail
 _summary: Check IPEX GPU Availability
 estimated_duration: 5m
 command:
@@ -437,6 +413,7 @@ id: itex/itex_gpu_avail
 category_id: dss-regress
 flags: simple
 requires: executable.name == 'microk8s'
+depends: intel_gpu/check_host_gpu_avail
 _summary: Check ITEX GPU Availability
 estimated_duration: 5m
 command:

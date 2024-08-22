@@ -40,7 +40,7 @@ Some test need dependencies, so in order to run all tests, you might way to inst
 A helper script is available to install them:
 
 ```shell
-checkbox-dss.install-dss-deps
+checkbox-dss.install-deps
 ```
 
 # Automated Run
@@ -48,7 +48,7 @@ checkbox-dss.install-dss-deps
 To run the test plans:
 
 ```shell
-checkbox-dss.gpu-plugin-validation
+checkbox-dss.validate-intel-gpu
 ```
 
 # Cleanup
@@ -57,7 +57,7 @@ WARNING: The following steps will remove kubectl and microk8s from your machine.
 
 To clean up and uninstall all installed tests, run:
 ```shell
-checkbox-dss.remove-dss-deps
+checkbox-dss.remove-deps
 ```
 
 # Develop the Checkbox DSS provider
@@ -68,7 +68,7 @@ Therefore, if you want to edit a job definition, a script or a test plan, run th
 
 ```shell
 cd $HOME
-git clone https://github.com/mckees/checkbox-dss-validation
+git clone https://github.com/canonical/checkbox-dss-validation
 mkdir /var/tmp/checkbox-providers
 cp -r $HOME/checkbox-dss-validation/checkbox-provider-dss /var/tmp/checkbox-providers/
 ```

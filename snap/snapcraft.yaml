@@ -35,9 +35,9 @@ apps:
   configure:
     command-chain: [bin/wrapper_local]
     command: bin/configure
-  gpu-plugin-validation:
+  validate-intel-gpu:
     command-chain: [bin/wrapper_local]
-    command: bin/gpu-plugin-validation
+    command: bin/validate-intel-gpu
   remote-slave:
     command-chain: [bin/wrapper_local]
     command: bin/checkbox-cli-wrapper slave
@@ -46,10 +46,10 @@ apps:
   shell:
     command-chain: [bin/wrapper_local]
     command: bin/shell-wrapper
-  install-dss-deps:
-    command: bin/install-dss-deps
-  remove-dss-deps:
-    command: bin/remove-dss-deps
+  install-deps:
+    command: bin/install-deps
+  remove-deps:
+    command: bin/remove-deps
 
 passthrough:
   hooks:
