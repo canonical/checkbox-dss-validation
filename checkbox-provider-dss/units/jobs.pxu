@@ -24,13 +24,13 @@ command:
   set -e
   # Using kubectl directly due to this bug: https://github.com/canonical/microk8s/issues/4453
   VERSION=v0.30.0
-  kubectl kustomize https://github.com/intel/intel-device-plugins-for-kubernetes/deployments/nfd?ref=${VERSION} > node_feature_discovery.yaml
-  kubectl kustomize https://github.com/intel/intel-device-plugins-for-kubernetes/deployments/nfd/overlays/node-feature-rules?ref=${VERSION} > node_feature_rules.yaml
-  kubectl kustomize https://github.com/intel/intel-device-plugins-for-kubernetes/deployments/gpu_plugin/overlays/nfd_labeled_nodes?ref=${VERSION} > gpu_plugin.yaml
-  sed -i 's/enable-monitoring/enable-monitoring\n        - -shared-dev-num=10/' gpu_plugin.yaml
-  kubectl apply -f node_feature_discovery.yaml
-  kubectl apply -f node_feature_rules.yaml
-  kubectl apply -f gpu_plugin.yaml
+  kubectl kustomize https://github.com/intel/intel-device-plugins-for-kubernetes/deployments/nfd?ref=${VERSION} > /tmp/node_feature_discovery.yaml
+  kubectl kustomize https://github.com/intel/intel-device-plugins-for-kubernetes/deployments/nfd/overlays/node-feature-rules?ref=${VERSION} > /tmp/node_feature_rules.yaml
+  kubectl kustomize https://github.com/intel/intel-device-plugins-for-kubernetes/deployments/gpu_plugin/overlays/nfd_labeled_nodes?ref=${VERSION} > /tmp/gpu_plugin.yaml
+  sed -i 's/enable-monitoring/enable-monitoring\n        - -shared-dev-num=10/' /tmp/gpu_plugin.yaml
+  kubectl apply -f /tmp/node_feature_discovery.yaml
+  kubectl apply -f /tmp/node_feature_rules.yaml
+  kubectl apply -f /tmp/gpu_plugin.yaml
   sleep 5
   kubectl -n node-feature-discovery rollout status ds/nfd-worker
   kubectl -n default rollout status ds/intel-gpu-plugin
@@ -43,7 +43,7 @@ id: intel_gpu_plugin/daemonset_check_name
 category_id: dss-regress
 flags: simple
 requires: executable.name == 'microk8s'
-depends: intel_gpu/check_host_gpu_avail
+depends: intel_gpu_plugin/install_intel_gpu_plugin
 _summary: Check DaemonSet Name
 estimated_duration: 1s
 command:
@@ -60,7 +60,7 @@ id: intel_gpu_plugin/daemonset_check_number_available
 category_id: dss-regress
 flags: simple
 requires: executable.name == 'microk8s'
-depends: intel_gpu/check_host_gpu_avail
+depends: intel_gpu_plugin/install_intel_gpu_plugin
 _summary: Check number of available daemonsets
 estimated_duration: 1s
 command:
@@ -90,7 +90,7 @@ id: intel_gpu_plugin/daemonset_check_number_ready
 category_id: dss-regress
 flags: simple
 requires: executable.name == 'microk8s'
-depends: intel_gpu/check_host_gpu_avail
+depends: intel_gpu_plugin/install_intel_gpu_plugin
 _summary: Check number of ready daemonsets
 estimated_duration: 1s
 command:
@@ -122,7 +122,7 @@ id: intel_gpu_plugin/dss_initialize
 category_id: dss-regress
 flags: simple
 requires: executable.name == 'microk8s'
-depends: intel_gpu/check_host_gpu_avail
+depends: intel_gpu_plugin/install_intel_gpu_plugin
 _summary: Initialize DSS environment with common k8s manifests
 estimated_duration: 2m
 command:
@@ -138,7 +138,7 @@ id: intel_gpu_plugin/dss_check_service_name
 category_id: dss-regress
 flags: simple
 requires: executable.name == 'microk8s'
-depends: intel_gpu/check_host_gpu_avail
+depends: intel_gpu_plugin/dss_initialize
 _summary: Check Service Name
 estimated_duration: 1s
 command:
@@ -159,7 +159,7 @@ flags: simple
 requires:
   executable.name == 'docker'
   executable.name == 'microk8s'
-depends: intel_gpu/check_host_gpu_avail
+depends: intel_gpu_plugin/dss_initialize
 _summary: Launch OpenVINO+Jupyter container
 estimated_duration: 6m
 command:
@@ -188,7 +188,7 @@ id: openvino/app_deployment
 category_id: dss-regress
 flags: simple
 requires: executable.name == 'microk8s'
-depends: intel_gpu/check_host_gpu_avail
+depends: intel_gpu_plugin/dss_initialize
 _summary: Check OpenVINO Deployment
 estimated_duration: 1s
 command:
@@ -205,7 +205,7 @@ id: openvino/libs_installed
 category_id: dss-regress
 flags: simple
 requires: executable.name == 'microk8s'
-depends: intel_gpu/check_host_gpu_avail
+depends: intel_gpu_plugin/dss_initialize
 _summary: Check jupyter and openvino python packages in OpenVINO container
 estimated_duration: 1s
 command:
@@ -220,7 +220,7 @@ id: openvino/gpu_avail
 category_id: dss-regress
 flags: simple
 requires: executable.name == 'microk8s'
-depends: intel_gpu/check_host_gpu_avail
+depends: intel_gpu_plugin/dss_initialize
 _summary: Check OpenVINO GPU Availability
 estimated_duration: 1s
 command:
@@ -245,7 +245,7 @@ id: itex/check_itex_import
 category_id: dss-regress
 flags: simple
 requires: executable.name == 'microk8s'
-depends: intel_gpu/check_host_gpu_avail
+depends: intel_gpu_plugin/dss_initialize
 _summary: Check to see if itex can be imported
 estimated_duration: 5m
 command:
@@ -298,7 +298,7 @@ id: ipex/check_ipex_import
 category_id: dss-regress
 flags: simple
 requires: executable.name == 'microk8s'
-depends: intel_gpu/check_host_gpu_avail
+depends: intel_gpu_plugin/dss_initialize
 _summary: Check to see if ipex can be imported
 estimated_duration: 5m
 command:
@@ -352,7 +352,7 @@ id: ipex/ipex_gpu_avail
 category_id: dss-regress
 flags: simple
 requires: executable.name == 'microk8s'
-depends: intel_gpu/check_host_gpu_avail
+depends: intel_gpu_plugin/dss_initialize
 _summary: Check IPEX GPU Availability
 estimated_duration: 5m
 command:
@@ -418,7 +418,7 @@ id: itex/itex_gpu_avail
 category_id: dss-regress
 flags: simple
 requires: executable.name == 'microk8s'
-depends: intel_gpu/check_host_gpu_avail
+depends: intel_gpu_plugin/dss_initialize
 _summary: Check ITEX GPU Availability
 estimated_duration: 5m
 command:
