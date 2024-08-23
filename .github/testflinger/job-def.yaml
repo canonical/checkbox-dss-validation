@@ -20,11 +20,16 @@ test_data:
       git log --name-status HEAD^..HEAD
     '
 
-    # Install snap
+    # Install dependencies
     ssh ubuntu@$DEVICE_IP '
       sudo snap install --classic snapcraft
       sudo snap install checkbox22
       sudo snap install lxd --channel=5.21/stable
+      sudo adduser ubuntu lxd
+    '
+
+    # Build and install checkbox-dss snap
+    ssh ubuntu@$DEVICE_IP '
       lxd init --auto
       cd checkbox-dss-validation
       snapcraft
