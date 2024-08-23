@@ -39,17 +39,3 @@ bootstrap_include:
     com.canonical.certification::executable
     com.canonical.certification::snap
     graphics_card
-
-id: openvino-validation
-unit: test plan
-_name: OpenVino validation testing plan
-include:
-    opencl/ocl_device_check.*
-    openvino/build_image_and_deploy
-    openvino/app_deployment
-    openvino/libs_installed
-    openvino/gpu_avail
-bootstrap_include:
-    com.canonical.certification::executable
-    com.canonical.certification::snap
-    graphics_card
