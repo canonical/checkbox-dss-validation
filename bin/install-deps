@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-echo -e "\nStep 1/4: Deploying MicroK8s snap"
+echo -e "\nStep 1/5: Installing microk8s snap"
 sudo snap install microk8s --channel 1.28/stable --classic
 
 USER=$(id -nu ${SNAP_UID})
@@ -13,17 +13,18 @@ sudo mkdir -p $HOME/.local/share
 sudo chown -f -R $USER $HOME/.kube
 sudo chown -f -R $USER $HOME/.local/share
 
-echo -e "\nStep 2/4: Configuring MicroK8s addons"
+echo -e "\nStep 2/5: Configuring microk8s addons"
 sudo microk8s status --wait-ready
 # Give microk8s another minute to stabilize
 # to avoid intermittent failures when
 # enabling hostpath-storage
+echo "Giving microk8s a minute to stabilize..."
 sleep 60
 sudo microk8s enable hostpath-storage
 sudo microk8s enable dns
 sudo microk8s enable rbac
 
-echo "Waiting for microK8s addons to become ready..."
+echo "Waiting for microk8s addons to become ready..."
 sudo microk8s.kubectl wait \
   --for=condition=available \
   --timeout 1800s \
@@ -32,6 +33,7 @@ sudo microk8s.kubectl wait \
   deployment/hostpath-provisioner
 sudo microk8s.kubectl -n kube-system rollout status ds/calico-node
 
+echo -e "\nStep 3/5: Installing kubectl snap"
 # https://github.com/canonical/microk8s/issues/4453
 sudo snap install kubectl --classic --channel=1.29/stable
 # hack as redirecting stdout anywhere but /dev/null throws a permission denied error
@@ -39,8 +41,8 @@ sudo snap install kubectl --classic --channel=1.29/stable
 sudo microk8s.kubectl config view --raw | tee $HOME/.kube/config > /dev/null
 
 # Clone DSS repo for K8s manifest files
-echo -e "\nStep 3/4: Installing data-science-stack repo at /tmp"
+echo -e "\nStep 4/5: Installing data-science-stack repo at /tmp"
 git clone https://github.com/canonical/data-science-stack /tmp/data-science-stack
 
-echo -e "\nStep 4/4: Installing intel-gpu-tools"
+echo -e "\nStep 5/5: Installing intel-gpu-tools"
 DEBIAN_FRONTEND=noninteractive sudo apt install -y intel-gpu-tools
