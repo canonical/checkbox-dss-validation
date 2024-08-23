@@ -10,8 +10,8 @@ test_data:
 
     # Clone repo from appropriate branch/commit.
     ssh ubuntu@$DEVICE_IP '
-      DEBIAN_FRONTEND=noninteractive apt update
-      DEBIAN_FRONTEND=noninteractive apt -y upgrade
+      DEBIAN_FRONTEND=noninteractive sudo apt update
+      DEBIAN_FRONTEND=noninteractive sudo apt -y upgrade
       DEBIAN_FRONTEND=noninteractive sudo apt -y install git
       git clone -b REPLACE_BRANCH \
         https://github.com/canonical/checkbox-dss-validation.git \
@@ -34,7 +34,7 @@ test_data:
     # Disable swap and IPv6
     ssh ubuntu@$DEVICE_IP '
       sudo sysctl -w vm.swappiness=0
-      sudo echo "vm.swappiness = 0" | tee -a /etc/sysctl.conf
+      sudo echo "vm.swappiness = 0" | sudo tee -a /etc/sysctl.conf
       sudo swapoff -a
       echo "net.ipv6.conf.all.disable_ipv6=1" | sudo tee -a /etc/sysctl.conf
       echo "net.ipv6.conf.default.disable_ipv6=1" | sudo tee -a /etc/sysctl.conf
