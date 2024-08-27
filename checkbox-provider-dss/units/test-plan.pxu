@@ -1,13 +1,18 @@
-id: gpu-plugin-validation
+id: dss-validation
 unit: test plan
-_name: Intel GPU k8s device plugin testing plan
+_name: DSS validation of Intel-supported Docker images and k8s Intel GPU support
 include:
-  intel_gpu_plugin/microk8s.*
-  intel_gpu_plugin/daemonset_check.*
-  intel_gpu_plugin/dss_.*
-  ipex.*
-  itex.*
-  intel_gpu_plugin/openvino_.*
+    intel_gpu/check_host_gpu_avail
+    intel_gpu_plugin/install_intel_gpu_plugin
+    intel_gpu_plugin/daemonset_check_name
+    intel_gpu_plugin/daemonset_check_number_available
+    intel_gpu_plugin/daemonset_check_number_ready
+    intel_gpu_plugin/dss_initialize
+    intel_gpu_plugin/dss_check_service_name
+    itex/check_itex_import
+    ipex/check_ipex_import
+    ipex/ipex_gpu_avail
+    itex/itex_gpu_avail
 bootstrap_include:
     com.canonical.certification::executable
     com.canonical.certification::snap
@@ -17,8 +22,8 @@ id: ipex-validation
 unit: test plan
 _name: IPEX validation testing plan
 include:
-  opencl/ocl_device_check.*
-  ipex/ipex.*
+    opencl/ocl_device_check.*
+    ipex/ipex.*
 bootstrap_include:
     com.canonical.certification::executable
     com.canonical.certification::snap
@@ -28,19 +33,8 @@ id: itex-validation
 unit: test plan
 _name: ITEX validation testing plan
 include:
-  opencl/ocl_device_check.*
-  itex/itex.*
-bootstrap_include:
-    com.canonical.certification::executable
-    com.canonical.certification::snap
-    graphics_card
-
-id: openvino-validation
-unit: test plan
-_name: OpenVino validation testing plan
-include:
-  opencl/ocl_device_check.*
-  openvino/openvino.*
+    opencl/ocl_device_check.*
+    itex/itex.*
 bootstrap_include:
     com.canonical.certification::executable
     com.canonical.certification::snap

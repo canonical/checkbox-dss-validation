@@ -1,22 +1,38 @@
-# TODO: add host-level Intel GPU checks (lspci, ls /dev/dri)
+id: intel_gpu/check_host_gpu_avail
+category_id: dss-regress
+flags: simple
+requires: executable.name == 'intel_gpu_top'
+_summary: Verify that an Intel GPU is available on the host
+estimated_duration: 5s
+command:
+  result=$(intel_gpu_top -L)
+  if [[ ${result} == *"pci:vendor=8086"* ]]; then
+      echo "Test success: Intel GPU available on host: ${result}"
+  else
+      >&2 echo "Test failure: "intel_gpu_top -L" reports no Intel GPUs: ${result}"
+      exit 1
+  fi
 
-unit: template
-template-resource: graphics_card
-template-filter: graphics_card.driver in ['i915']
-template-engine: jinja2
-template-unit: job
-id: intel_gpu_plugin/microk8s_install_intel_gpu_plugin_{{ driver }}
+id: intel_gpu_plugin/install_intel_gpu_plugin
 category_id: dss-regress
 flags: simple
 requires: executable.name == 'kubectl'
+depends: intel_gpu/check_host_gpu_avail
 _summary: Install Intel K8s GPU Device Plugin
 estimated_duration: 2m
 command:
   set -e
   # Using kubectl directly due to this bug: https://github.com/canonical/microk8s/issues/4453
-  kubectl apply -k 'https://github.com/intel/intel-device-plugins-for-kubernetes/deployments/nfd?ref=v0.29.0'
-  kubectl apply -k 'https://github.com/intel/intel-device-plugins-for-kubernetes/deployments/nfd/overlays/node-feature-rules?ref=v0.29.0'
-  kubectl apply -k 'https://github.com/intel/intel-device-plugins-for-kubernetes/deployments/gpu_plugin/overlays/nfd_labeled_nodes?ref=v0.29.0'
+  VERSION=v0.30.0
+  # hack as redirecting stdout anywhere but /dev/null throws a permission denied error
+  # see: https://forum.snapcraft.io/t/eksctl-cannot-write-to-stdout/17254/4
+  kubectl kustomize https://github.com/intel/intel-device-plugins-for-kubernetes/deployments/nfd?ref=${VERSION} | tee /tmp/node_feature_discovery.yaml > /dev/null
+  kubectl kustomize https://github.com/intel/intel-device-plugins-for-kubernetes/deployments/nfd/overlays/node-feature-rules?ref=${VERSION} | tee /tmp/node_feature_rules.yaml > /dev/null
+  kubectl kustomize https://github.com/intel/intel-device-plugins-for-kubernetes/deployments/gpu_plugin/overlays/nfd_labeled_nodes?ref=${VERSION} | tee /tmp/gpu_plugin.yaml > /dev/null
+  sed -i 's/enable-monitoring/enable-monitoring\n        - -shared-dev-num=10/' /tmp/gpu_plugin.yaml
+  kubectl apply -f /tmp/node_feature_discovery.yaml
+  kubectl apply -f /tmp/node_feature_rules.yaml
+  kubectl apply -f /tmp/gpu_plugin.yaml
   sleep 5
   kubectl -n node-feature-discovery rollout status ds/nfd-worker
   kubectl -n default rollout status ds/intel-gpu-plugin
@@ -25,15 +41,11 @@ command:
   sleep ${SLEEP_SECS}
   echo "Test success: Intel K8s GPU Device Plugin deployed."
 
-unit: template
-template-resource: graphics_card
-template-filter: graphics_card.driver in ['i915']
-template-engine: jinja2
-template-unit: job
-id: intel_gpu_plugin/daemonset_check_name_{{ driver }}
+id: intel_gpu_plugin/daemonset_check_name
 category_id: dss-regress
 flags: simple
 requires: executable.name == 'microk8s'
+depends: intel_gpu_plugin/install_intel_gpu_plugin
 _summary: Check DaemonSet Name
 estimated_duration: 1s
 command:
@@ -46,15 +58,11 @@ command:
       exit 1
   fi
 
-unit: template
-template-resource: graphics_card
-template-filter: graphics_card.driver in ['i915']
-template-engine: jinja2
-template-unit: job
-id: intel_gpu_plugin/daemonset_check_number_available_{{ driver }}
+id: intel_gpu_plugin/daemonset_check_number_available
 category_id: dss-regress
 flags: simple
 requires: executable.name == 'microk8s'
+depends: intel_gpu_plugin/install_intel_gpu_plugin
 _summary: Check number of available daemonsets
 estimated_duration: 1s
 command:
@@ -80,15 +88,11 @@ command:
       exit 1
   fi
 
-unit: template
-template-resource: graphics_card
-template-filter: graphics_card.driver in ['i915']
-template-engine: jinja2
-template-unit: job
-id: intel_gpu_plugin/daemonset_check_number_ready_{{ driver }}
+id: intel_gpu_plugin/daemonset_check_number_ready
 category_id: dss-regress
 flags: simple
 requires: executable.name == 'microk8s'
+depends: intel_gpu_plugin/install_intel_gpu_plugin
 _summary: Check number of ready daemonsets
 estimated_duration: 1s
 command:
@@ -116,15 +120,11 @@ command:
 
 # TODO: add node label checks
 
-unit: template
-template-resource: graphics_card
-template-filter: graphics_card.driver in ['i915']
-template-engine: jinja2
-template-unit: job
-id: intel_gpu_plugin/dss_initialize_{{ driver }}
+id: intel_gpu_plugin/dss_initialize
 category_id: dss-regress
 flags: simple
 requires: executable.name == 'microk8s'
+depends: intel_gpu_plugin/install_intel_gpu_plugin
 _summary: Initialize DSS environment with common k8s manifests
 estimated_duration: 2m
 command:
@@ -136,15 +136,11 @@ command:
   sudo microk8s.kubectl wait --for condition=available --timeout 1200s -n dss deployment -l app=dss-mlflow
   echo "Test success: common DSS manifests deployed."
 
-unit: template
-template-resource: graphics_card
-template-filter: graphics_card.driver in ['i915']
-template-engine: jinja2
-template-unit: job
-id: intel_gpu_plugin/dss_check_service_name_{{ driver }}
+id: intel_gpu_plugin/dss_check_service_name
 category_id: dss-regress
 flags: simple
 requires: executable.name == 'microk8s'
+depends: intel_gpu_plugin/dss_initialize
 _summary: Check Service Name
 estimated_duration: 1s
 command:
@@ -159,114 +155,11 @@ command:
 
 # TODO: check other service and deployment details
 
-unit: template
-template-resource: graphics_card
-template-filter: graphics_card.driver in ['i915']
-template-engine: jinja2
-template-unit: job
-id: intel_gpu_plugin/openvino_start_{{ driver }}
-category_id: dss-regress
-flags: simple
-requires:
-  executable.name == 'docker'
-  executable.name == 'microk8s'
-_summary: Launch OpenVINO+Jupyter container
-estimated_duration: 6m
-command:
-  set -e
-  DSS_INTEL_POC_ROOT=/tmp/data-science-stack/poc/intel
-  OPENVINO_IMAGE="local/openvinotoolkit:render-addon"
-  OPENVINO_TAR_IMAGE="/tmp/openvino.tar"
-  echo "Building OpenVINO Docker image locally. Please be patient."
-  docker build -q -t local/openvinotoolkit:mainbranch github.com/openvinotoolkit/openvino_notebooks
-  render_gid=$(getent group render | cut -d: -f3)
-  container_user=$(docker run --rm local/openvinotoolkit:mainbranch /usr/bin/whoami)
-  cat ${DSS_INTEL_POC_ROOT}/openvino-image/Dockerfile | docker build -q \
-    -t local/openvinotoolkit:render-addon \
-    --build-arg render_gid=${render_gid} \
-    --build-arg container_user=${container_user} -
-  # hack as redirecting stdout anywhere but /dev/null throws a permission denied error
-  # see: https://forum.snapcraft.io/t/eksctl-cannot-write-to-stdout/17254/4
-  docker save local/openvinotoolkit:render-addon | tee ${OPENVINO_TAR_IMAGE} > /dev/null
-  microk8s ctr image import ${OPENVINO_TAR_IMAGE}
-  rm -f ${OPENVINO_TAR_IMAGE}
-  sudo microk8s kubectl apply -f ${DSS_INTEL_POC_ROOT}/manifests/notebook-openvino.yaml
-  sudo microk8s.kubectl wait --for condition=available --timeout 1200s -n dss deployment -l app=user-notebook-openvino
-  echo "Test success: OpenVINO+Jupyter container is running."
-
-unit: template
-template-resource: graphics_card
-template-filter: graphics_card.driver in ['i915']
-template-engine: jinja2
-template-unit: job
-id: intel_gpu_plugin/openvino_deployment_{{ driver }}
-category_id: dss-regress
-flags: simple
-requires: executable.name == 'microk8s'
-_summary: Check OpenVINO Deployment
-estimated_duration: 1s
-command:
-  set -e
-  all_apps=$(microk8s.kubectl get deployment.apps -n dss -o jsonpath='{.items..metadata.name}')
-  if grep -qw "notebook-openvino" <<<${all_apps}; then
-      echo "Test success: 'notebook-openvino' app is deployed!"
-  else
-      >&2 echo "Test failure: expected result to contain app name 'notebook-openvino' but got ${result}"
-      exit 1
-  fi
-
-unit: template
-template-resource: graphics_card
-template-filter: graphics_card.driver in ['i915']
-template-engine: jinja2
-template-unit: job
-id: intel_gpu_plugin/openvino_libs_installed_{{ driver }}
-category_id: dss-regress
-flags: simple
-requires: executable.name == 'microk8s'
-_summary: Check jupyter and openvino python packages in OpenVINO container
-estimated_duration: 1s
-command:
-  set -e
-  pod=$(microk8s.kubectl get pods -n dss -o=jsonpath='{.items..metadata.name}' | grep -o 'notebook-openvino.*')
-  echo "Examining pod ${pod}..."
-  microk8s.kubectl -n dss exec ${pod} -- pip show jupyter
-  microk8s.kubectl -n dss exec ${pod} -- pip show openvino
-  echo "Test success: jupyter and openvino python packages installed in container."
-
-unit: template
-template-resource: graphics_card
-template-filter: graphics_card.driver in ['i915']
-template-engine: jinja2
-template-unit: job
-id: intel_gpu_plugin/openvino_gpu_avail_{{ driver }}
-category_id: dss-regress
-flags: simple
-requires: executable.name == 'microk8s'
-_summary: Check OpenVINO GPU Availability
-estimated_duration: 1s
-command:
-  set -e
-  pod=$(microk8s.kubectl get pods -n dss -o=jsonpath='{.items..metadata.name}' | grep -o 'notebook-openvino.*')
-  echo "Examining pod ${pod}..."
-  microk8s kubectl -n dss exec -i --tty=false ${pod} -- python3 \
-  <<EOF
-  import sys
-  import openvino as ov
-  core = ov.Core()
-  if "GPU" in core.available_devices:
-    full_device_name = core.get_property("GPU", "FULL_DEVICE_NAME")
-    print(f"Test success: Intel GPU device ({full_device_name}) available to OpenVINO.")
-    sys.exit(0)
-  else:
-    print("Test failure: No Intel GPU device available to OpenVINO.", file=sys.stderr)
-    sys.exit(1)
-  EOF
-
 id: itex/check_itex_import
 category_id: dss-regress
 flags: simple
 requires: executable.name == 'microk8s'
+depends: intel_gpu_plugin/dss_initialize
 _summary: Check to see if itex can be imported
 estimated_duration: 5m
 command:
@@ -319,6 +212,7 @@ id: ipex/check_ipex_import
 category_id: dss-regress
 flags: simple
 requires: executable.name == 'microk8s'
+depends: intel_gpu_plugin/dss_initialize
 _summary: Check to see if ipex can be imported
 estimated_duration: 5m
 command:
@@ -372,6 +266,7 @@ id: ipex/ipex_gpu_avail
 category_id: dss-regress
 flags: simple
 requires: executable.name == 'microk8s'
+depends: intel_gpu_plugin/dss_initialize
 _summary: Check IPEX GPU Availability
 estimated_duration: 5m
 command:
@@ -437,6 +332,7 @@ id: itex/itex_gpu_avail
 category_id: dss-regress
 flags: simple
 requires: executable.name == 'microk8s'
+depends: intel_gpu_plugin/dss_initialize
 _summary: Check ITEX GPU Availability
 estimated_duration: 5m
 command:
