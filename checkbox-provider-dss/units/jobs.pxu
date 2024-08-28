@@ -110,10 +110,12 @@ command:
   kubectl apply -f /tmp/node_feature_rules.yaml
   kubectl apply -f /tmp/gpu_plugin.yaml
   SLEEP_SECS=15
-  echo "Info: sleeping for ${SLEEP_SECS} seconds before checking rollout status."
+  echo "[INFO]: sleeping for ${SLEEP_SECS} seconds before checking rollout status."
   sleep ${SLEEP_SECS}
   kubectl -n node-feature-discovery rollout status ds/nfd-worker
   kubectl -n default rollout status ds/intel-gpu-plugin
+  echo "[INFO]: sleeping for ${SLEEP_SECS} seconds to allow pod status to update for subsequent tests."
+  sleep ${SLEEP_SECS}
   echo "Test success: Intel K8s GPU Device Plugin deployed."
 
 id: intel_gpu_plugin/daemonset_name
@@ -154,7 +156,7 @@ id: intel_gpu_plugin/daemonset_number_ready
 category_id: dss-regress
 flags: simple
 requires: executable.name == 'microk8s'
-depends: intel_gpu_plugin/install
+depends: intel_gpu_plugin/daemonset_number_available
 _summary: Check number of ready daemonsets
 estimated_duration: 5s
 command:
@@ -171,7 +173,7 @@ id: intel_gpu_plugin/labels
 category_id: dss-regress
 flags: simple
 requires: executable.name == 'microk8s'
-depends: intel_gpu_plugin/install
+depends: intel_gpu_plugin/daemonset_number_ready
 _summary: Check intel.feature.node.kubernetes.io/gpu k8s node label
 estimated_duration: 5s
 command:
@@ -188,7 +190,7 @@ id: intel_gpu_plugin/gpu_count
 category_id: dss-regress
 flags: simple
 requires: executable.name == 'microk8s'
-depends: intel_gpu_plugin/install
+depends: intel_gpu_plugin/labels
 _summary: Check number of Intel GPUs available on k8s node
 estimated_duration: 5s
 command:
@@ -226,7 +228,7 @@ id: intel_gpu_plugin/node_gpu_allocatable
 category_id: dss-regress
 flags: simple
 requires: executable.name == 'microk8s'
-depends: intel_gpu_plugin/gpu_count
+depends: intel_gpu_plugin/node_gpu_capacity
 _summary: Check allocatable slots for pods requesting GPU(s)
 estimated_duration: 5s
 command:
@@ -247,7 +249,7 @@ id: dss/status_intel_gpu
 category_id: dss-regress
 flags: simple
 requires: executable.name == 'dss'
-depends: intel_gpu_plugin/install
+depends: intel_gpu_plugin/node_gpu_allocatable
 _summary: Check that dss status reports that Intel GPU acceleration is enabled
 estimated_duration: 5s
 command:
