@@ -114,8 +114,6 @@ command:
   sleep ${SLEEP_SECS}
   kubectl -n node-feature-discovery rollout status ds/nfd-worker
   kubectl -n default rollout status ds/intel-gpu-plugin
-  echo "Info: sleeping for ${SLEEP_SECS} seconds to allow pod status to update for subsequent tests."
-  sleep ${SLEEP_SECS}
   echo "Test success: Intel K8s GPU Device Plugin deployed."
 
 id: intel_gpu_plugin/daemonset_name
@@ -144,20 +142,7 @@ _summary: Check number of available daemonsets
 estimated_duration: 5s
 command:
   set -e
-  SLEEP_SECS=10
-  RETRIES=10
   result=$(microk8s.kubectl get daemonset.apps -o jsonpath='{.items[0].status.numberAvailable}')
-  retry_cnt=0
-  while [ -z "${result}" ]; do
-      if [ "${retry_cnt}" = "10" ]; then
-          >&2 echo "Test failure: empty numberAvailable result after ${retry_cnt} retries."
-          exit 1
-      fi
-      retry_cnt=$((retry_cnt+1))
-      echo "Info: received empty numberAvailable result. Sleeping for ${SLEEP_SECS} seconds. Retry $retry_cnt/$RETRIES."
-      sleep ${SLEEP_SECS}
-      result=$(microk8s.kubectl get daemonset.apps -o jsonpath='{.items[0].status.numberAvailable}')
-  done
   if [ "${result}" = "1" ]; then
       echo "Test success: 1 daemonset in numberAvailable status."
   else
@@ -174,20 +159,7 @@ _summary: Check number of ready daemonsets
 estimated_duration: 5s
 command:
   set -e
-  SLEEP_SECS=10
-  RETRIES=10
   result=$(microk8s.kubectl get daemonset.apps -o jsonpath='{.items[0].status.numberReady}')
-  retry_cnt=0
-  while [ -z "${result}" ]; do
-      if [ "${retry_cnt}" = "10" ]; then
-          >&2 echo "Test failure: empty numberReady result after ${retry_cnt} retries."
-          exit 1
-      fi
-      retry_cnt=$((retry_cnt+1))
-      echo "Info: received empty numberReady result. Sleeping for ${SLEEP_SECS} seconds. Retry $retry_cnt/$RETRIES."
-      sleep ${SLEEP_SECS}
-      result=$(microk8s.kubectl get daemonset.apps -o jsonpath='{.items[0].status.numberReady}')
-  done
   if [ "${result}" = "1" ]; then
       echo "Test success: 1 daemonset in numberReady status."
   else
@@ -204,20 +176,7 @@ _summary: Check intel.feature.node.kubernetes.io/gpu k8s node label
 estimated_duration: 5s
 command:
   set -e
-  SLEEP_SECS=10
-  RETRIES=10
   result=$(microk8s.kubectl get node -o jsonpath='{.items[0].metadata.labels.intel\.feature\.node\.kubernetes\.io/gpu}')
-  retry_cnt=0
-  while [ -z "${result}" ]; do
-      if [ "${retry_cnt}" = "10" ]; then
-          >&2 echo "Test failure: empty labels after ${retry_cnt} retries."
-          exit 1
-      fi
-      retry_cnt=$((retry_cnt+1))
-      echo "Info: received empty labels. Sleeping for ${SLEEP_SECS} seconds. Retry $retry_cnt/$RETRIES."
-      sleep ${SLEEP_SECS}
-      result=$(microk8s.kubectl get node -o jsonpath='{.items[0].metadata.labels.intel\.feature\.node\.kubernetes\.io/gpu}')
-  done
   if [ "${result}" = "true" ]; then
       echo "Test success: found expected label: 'intel.feature.node.kubernetes.io/gpu': 'true'"
   else
@@ -234,20 +193,7 @@ _summary: Check number of Intel GPUs available on k8s node
 estimated_duration: 5s
 command:
   set -e
-  SLEEP_SECS=10
-  RETRIES=10
   result=$(microk8s.kubectl get node -o json | jq '.items[0].metadata.labels | with_entries(select(.key|match("gpu.intel.com/device-id.*.count";"i")))[] | tonumber' | awk '{cnt+=$1} END{print cnt}')
-  retry_cnt=0
-  while [ -z "${result}" ]; do
-      if [ "${retry_cnt}" = "10" ]; then
-          >&2 echo "Test failure: empty num_gpus result after ${retry_cnt} retries."
-          exit 1
-      fi
-      retry_cnt=$((retry_cnt+1))
-      echo "Info: received empty num_gpus result. Sleeping for ${SLEEP_SECS} seconds. Retry $retry_cnt/$RETRIES."
-      sleep ${SLEEP_SECS}
-      result=$(microk8s.kubectl get node -o json | jq '.items[0].metadata.labels | with_entries(select(.key|match("gpu.intel.com/device-id.*.count";"i")))[] | tonumber' | awk '{cnt+=$1} END{print cnt}')
-  done
   if [ "${result}" -ge 1 ]; then
       echo "Test success: Found ${result} GPUs on system."
   else
@@ -264,23 +210,8 @@ _summary: Check capacity slots for pods requesting GPU(s)
 estimated_duration: 5s
 command:
   set -e
-  SLEEP_SECS=10
-  RETRIES=10
-  # ran this in the dependent test so it should be safe
-  # to run this here without retries
   num_gpus=$(microk8s.kubectl get node -o json | jq '.items[0].metadata.labels | with_entries(select(.key|match("gpu.intel.com/device-id.*.count";"i")))[] | tonumber' | awk '{cnt+=$1} END{print cnt}')
   result=$(microk8s.kubectl get node -o jsonpath='{.items[0].status.capacity.gpu\.intel\.com/i915}')
-  retry_cnt=0
-  while [ -z "${result}" ]; do
-      if [ "${retry_cnt}" = "10" ]; then
-          >&2 echo "Test failure: empty capacity result after ${retry_cnt} retries."
-          exit 1
-      fi
-      retry_cnt=$((retry_cnt+1))
-      echo "Info: received empty capacity result. Sleeping for ${SLEEP_SECS} seconds. Retry $retry_cnt/$RETRIES."
-      sleep ${SLEEP_SECS}
-      result=$(microk8s.kubectl get node -o jsonpath='{.items[0].status.capacity.gpu\.intel\.com/i915}')
-  done
   # this is the sharedDevNum we pass into the gpu_plugin.yaml during installation
   SLOTS_PER_GPU=10
   total_slots=$(( num_gpus * SLOTS_PER_GPU ))
@@ -300,23 +231,8 @@ _summary: Check allocatable slots for pods requesting GPU(s)
 estimated_duration: 5s
 command:
   set -e
-  SLEEP_SECS=10
-  RETRIES=10
-  # ran this in the dependent test so it should be safe
-  # to run this here without retries
   num_gpus=$(microk8s.kubectl get node -o json | jq '.items[0].metadata.labels | with_entries(select(.key|match("gpu.intel.com/device-id.*.count";"i")))[] | tonumber' | awk '{cnt+=$1} END{print cnt}')
   result=$(microk8s.kubectl get node -o jsonpath='{.items[0].status.allocatable.gpu\.intel\.com/i915}')
-  retry_cnt=0
-  while [ -z "${result}" ]; do
-      if [ "${retry_cnt}" = "10" ]; then
-          >&2 echo "Test failure: empty allocatable result after ${retry_cnt} retries."
-          exit 1
-      fi
-      retry_cnt=$((retry_cnt+1))
-      echo "Info: received empty allocatable result. Sleeping for ${SLEEP_SECS} seconds. Retry $retry_cnt/$RETRIES."
-      sleep ${SLEEP_SECS}
-      result=$(microk8s.kubectl get node -o jsonpath='{.items[0].status.allocatable.gpu\.intel\.com/i915}')
-  done
   # this is the sharedDevNum we pass into the gpu_plugin.yaml during installation
   SLOTS_PER_GPU=10
   total_slots=$(( num_gpus * SLOTS_PER_GPU ))
