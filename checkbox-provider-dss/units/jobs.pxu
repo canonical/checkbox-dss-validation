@@ -23,10 +23,16 @@ depends: intel_gpu/host_gpu_avail
 _summary: Check that the DSS environment initializes
 estimated_duration: 2m
 command:
+  #  IMPORTANT: for any test using the dss command:
+  #
+  # - Clear PYTHON shell vars to prevent conflicts between dss
+  #   and checkbox python environments
+  # - Run from ${HOME} as dss writes logs to its working directory,
+  #   and as a snap does not have permissions to write to the default
+  #   working directory for checkbox tests
+  #
   export -n PYTHONHOME PYTHONPATH PYTHONUSERBASE
   set -e
-  # The dss snap has access to the user's home directory
-  # and writes logs to it's working directory
   cd ${HOME}
   dss initialize --kubeconfig="$(sudo microk8s config)"
   echo "Test success: dss initialized."
@@ -39,6 +45,7 @@ depends: dss/initialize
 _summary: Check that the dss namespace is deployed
 estimated_duration: 5s
 command:
+  set -o pipefail
   if microk8s.kubectl get ns | grep -q dss; then
       echo "Test success: 'dss' namespace is deployed!"
   else
@@ -55,7 +62,7 @@ _summary: Check that the dss namespace is deployed
 estimated_duration: 5s
 command:
   export -n PYTHONHOME PYTHONPATH PYTHONUSERBASE
-  set -e
+  set -eo pipefail
   cd ${HOME}
   result=$(dss status) # save result to shell var to avoid broken pipe error
   if echo ${result} | grep -q "MLflow deployment: Ready"; then
@@ -329,7 +336,7 @@ _summary: Check that dss status reports that Intel GPU acceleration is enabled
 estimated_duration: 5s
 command:
   export -n PYTHONHOME PYTHONPATH PYTHONUSERBASE
-  set -e
+  set -eo pipefail
   cd ${HOME}
   result=$(dss status) # save result to shell var to avoid broken pipe error
   if echo ${result} | grep -q "Intel GPU acceleration: Enabled"; then
