@@ -52,5 +52,5 @@ if [ "${optional_arg}" = "--dss-snap-channel=latest/edge" ]; then
   sudo snap install data-science-stack --channel latest/edge
 else
   echo "Installing from stable"
-  sudo snap install data-science-stack --channel latest/edge
+  sudo snap install data-science-stack --channel latest/stable
 fi

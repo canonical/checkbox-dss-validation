@@ -23,7 +23,11 @@ depends: intel_gpu/host_gpu_avail
 _summary: Check that the DSS environment initializes
 estimated_duration: 2m
 command:
+  export -n PYTHONHOME PYTHONPATH PYTHONUSERBASE
   set -e
+  # The dss snap has access to the user's home directory
+  # and writes logs to it's working directory
+  cd ${HOME}
   dss initialize --kubeconfig="$(sudo microk8s config)"
   echo "Test success: dss initialized."
 
@@ -35,7 +39,6 @@ depends: dss/initialize
 _summary: Check that the dss namespace is deployed
 estimated_duration: 5s
 command:
-  set -e
   if microk8s.kubectl get ns | grep -q dss; then
       echo "Test success: 'dss' namespace is deployed!"
   else
@@ -51,7 +54,9 @@ depends: dss/namespace
 _summary: Check that the dss namespace is deployed
 estimated_duration: 5s
 command:
+  export -n PYTHONHOME PYTHONPATH PYTHONUSERBASE
   set -e
+  cd ${HOME}
   result=$(dss status) # save result to shell var to avoid broken pipe error
   if echo ${result} | grep -q "MLflow deployment: Ready"; then
       echo "Test success: 'dss status' shows ready status for mlflow."
@@ -98,11 +103,11 @@ command:
   kubectl apply -f /tmp/node_feature_rules.yaml
   kubectl apply -f /tmp/gpu_plugin.yaml
   SLEEP_SECS=15
-  echo "Info: sleeping for ${SLEEP_SECS} before checking rollout status."
+  echo "Info: sleeping for ${SLEEP_SECS} seconds before checking rollout status."
   sleep ${SLEEP_SECS}
   kubectl -n node-feature-discovery rollout status ds/nfd-worker
   kubectl -n default rollout status ds/intel-gpu-plugin
-  echo "Info: sleeping for ${SLEEP_SECS} to allow pod status to update for subsequent tests."
+  echo "Info: sleeping for ${SLEEP_SECS} seconds to allow pod status to update for subsequent tests."
   sleep ${SLEEP_SECS}
   echo "Test success: Intel K8s GPU Device Plugin deployed."
 
@@ -320,10 +325,12 @@ category_id: dss-regress
 flags: simple
 requires: executable.name == 'dss'
 depends: intel_gpu_plugin/install
-_summary: Check that the dss namespace is deployed
+_summary: Check that dss status reports that Intel GPU acceleration is enabled
 estimated_duration: 5s
 command:
+  export -n PYTHONHOME PYTHONPATH PYTHONUSERBASE
   set -e
+  cd ${HOME}
   result=$(dss status) # save result to shell var to avoid broken pipe error
   if echo ${result} | grep -q "Intel GPU acceleration: Enabled"; then
       echo "Test success: 'dss status' correctly reports Intel GPU status."
@@ -336,11 +343,13 @@ id: dss/create_itex_2.15_notebook
 category_id: dss-regress
 flags: simple
 requires: executable.name == 'dss'
-depends: intel_gpu_plugin/status_intel_gpu
+depends: dss/status_intel_gpu
 _summary: Check that an ITEX 2.15 notebook can be successfully created
 estimated_duration: 3m
 command:
-  if dss create itex-2.15-notebook --image=intel/intel-extension-for-tensorflow:2.15.0-xpu-idp-jupyter; then
+  export -n PYTHONHOME PYTHONPATH PYTHONUSERBASE
+  cd ${HOME}
+  if dss create itex-215-notebook --image=intel/intel-extension-for-tensorflow:2.15.0-xpu-idp-jupyter; then
       echo "Test success: successfully created an ITEX 2.15 notebook."
   else
       >&2 echo "Test failure: failed to create an ITEX 2.15 notebook."
@@ -356,7 +365,7 @@ _summary: Check to see if ITEX 2.15 can be imported
 estimated_duration: 1m
 command:
   echo "Starting itex import test"
-  pod=$(microk8s.kubectl get pods -n dss --field-selector=status.phase==Running -o=jsonpath='{.items..metadata.name}' | grep -o 'itex-2.15-notebook.*')
+  pod=$(microk8s.kubectl get pods -n dss --field-selector=status.phase==Running -o=jsonpath='{.items..metadata.name}' | grep -o 'itex-215-notebook.*')
   echo "Found Tensorflow pod: ${pod}"
   microk8s.kubectl -n dss exec ${pod} -- python3 -c "import intel_extension_for_tensorflow as itex; import tensorflow; import jupyter"
   if [ "$?" = 0 ]
@@ -378,7 +387,7 @@ estimated_duration: 1m
 command:
   set -e
   echo "Starting itex GPU check test"
-  pod=$(microk8s.kubectl get pods -n dss --field-selector=status.phase==Running -o=jsonpath='{.items..metadata.name}' | grep -o 'itex-2.15-notebook.*')
+  pod=$(microk8s.kubectl get pods -n dss --field-selector=status.phase==Running -o=jsonpath='{.items..metadata.name}' | grep -o 'itex-215-notebook.*')
   echo "Found Tensorflow pod: ${pod}"
   gpu_grep_out=$(microk8s.kubectl -n dss exec ${pod} -- python3 -c '
   import intel_extension_for_tensorflow as itex
@@ -407,11 +416,13 @@ id: dss/create_ipex_2.1.20_notebook
 category_id: dss-regress
 flags: simple
 requires: executable.name == 'dss'
-depends: intel_gpu_plugin/status_intel_gpu
+depends: dss/status_intel_gpu
 _summary: Check that an IPEX 2.1.20 notebook can be successfully created
 estimated_duration: 3m
 command:
-  if dss create ipex-2.1.20-notebook --image=intel/intel-extension-for-pytorch:2.1.20-xpu-idp-jupyter; then
+  export -n PYTHONHOME PYTHONPATH PYTHONUSERBASE
+  cd ${HOME}
+  if dss create ipex-2120-notebook --image=intel/intel-extension-for-pytorch:2.1.20-xpu-idp-jupyter; then
       echo "Test success: successfully created an IPEX 2.1.20 notebook."
   else
       >&2 echo "Test failure: failed to create an IPEX 2.1.20 notebook."
@@ -427,17 +438,15 @@ _summary: Check to see if IPEX 2.1.20 can be imported
 estimated_duration: 1m
 command:
   echo "Starting ipex import test"
-  pod=$(microk8s.kubectl get pods -n dss --field-selector=status.phase==Running -o=jsonpath='{.items..metadata.name}' | grep -o 'ipex-2.1.20-notebook.*')
+  pod=$(microk8s.kubectl get pods -n dss --field-selector=status.phase==Running -o=jsonpath='{.items..metadata.name}' | grep -o 'ipex-2120-notebook.*')
   echo "Found PyTorch pod: ${pod}"
   microk8s.kubectl -n dss exec ${pod} -- python3 -c "import intel_extension_for_pytorch as ipex; import torch; import jupyter"
   if [ "$?" = 0 ]
   then
     echo "PASS: Found module"
-    remove_ipex
     exit 0
   else
     >&2 echo "FAIL: Did not find IPEX python module"
-    remove_ipex
     exit 1
   fi
 
@@ -451,7 +460,7 @@ estimated_duration: 1m
 command:
   set -e
   echo "Starting ipex GPU check test"
-  pod=$(microk8s.kubectl get pods -n dss --field-selector=status.phase==Running -o=jsonpath='{.items..metadata.name}' | grep -o 'ipex-2.1.20-notebook.*')
+  pod=$(microk8s.kubectl get pods -n dss --field-selector=status.phase==Running -o=jsonpath='{.items..metadata.name}' | grep -o 'ipex-2120-notebook.*')
   echo "Found PyTorch pod: ${pod}"
   gpu_grep_out=$(microk8s.kubectl -n dss exec ${pod} -- python3 -c '
   import sys
