@@ -22,10 +22,12 @@ jobs:
           BRANCH: ${{ github.head_ref || github.ref_name }}
           QUEUE: dell-precision-3470-c30322 #ADL iGPU + NVIDIA GPU
           PROVISION_DATA: "distro: jammy"
+          DSS_CHANNEL: "latest/edge"
         run: |
           sed -e "s|REPLACE_BRANCH|${BRANCH}|" \
           -e "s|REPLACE_QUEUE|${QUEUE}|" \
           -e "s|REPLACE_PROVISION_DATA|${PROVISION_DATA}|" \
+          -e "s|REPLACE_DSS_CHANNEL|${DSS_CHANNEL}|" \
           ${GITHUB_WORKSPACE}/.github/testflinger/job-def.yaml > \
           ${GITHUB_WORKSPACE}/maas2.yaml
       - name: Submit testflinger job
@@ -45,10 +47,12 @@ jobs:
           BRANCH: ${{ github.head_ref || github.ref_name }}
           QUEUE: dell-precision-5680-c31665 #RPL iGPU + Arc Pro A60M dGPU
           PROVISION_DATA: "url: http://10.102.196.9/somerville/Platforms/jellyfish-muk/X96_A00/dell-bto-jammy-jellyfish-muk-X96-20230419-19_A00.iso"
+          DSS_CHANNEL: "latest/edge"
         run: |
           sed -e "s|REPLACE_BRANCH|${BRANCH}|" \
           -e "s|REPLACE_QUEUE|${QUEUE}|" \
           -e "s|REPLACE_PROVISION_DATA|${PROVISION_DATA}|" \
+          -e "s|REPLACE_DSS_CHANNEL|${DSS_CHANNEL}|" \
           ${GITHUB_WORKSPACE}/.github/testflinger/job-def.yaml > \
           ${GITHUB_WORKSPACE}/oemscript.yaml
       - name: Submit testflinger job

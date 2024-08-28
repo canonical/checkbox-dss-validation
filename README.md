@@ -43,6 +43,13 @@ A helper script is available to install them:
 checkbox-dss.install-deps
 ```
 
+By default this will install the `data-science-stack` snap from the `latest/stable`
+channel. To instead install from `latest/edge` use:
+
+```shell
+checkbox-dss.install-deps --dss-snap-channel=latest/edge
+```
+
 # Automated Run
 
 To run the test plans:
@@ -56,9 +63,13 @@ checkbox-dss.validate-intel-gpu
 WARNING: The following steps will remove kubectl and microk8s from your machine. If you wish to keep them, do not run.
 
 To clean up and uninstall all installed tests, run:
+
 ```shell
 checkbox-dss.remove-deps
 ```
+
+This will also remove the `data-science-stack` snap as well as any notebook servers
+that are managed by `dss`.
 
 # Develop the Checkbox DSS provider
 
